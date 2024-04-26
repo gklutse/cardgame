@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser-arcade-physics.min.js"></script>
+
+<style>
+  body, html {
+  overflow: hidden;
+  height: 100%;
+  width: 100%;
+  margin:0px;
+  padding: 0px;
+  border: 0px;
+}
+</style>
+</head>
+<body>
+    <script>
+    const gs = {
+        dpr: window.devicePixelRatio,
+        PlayerScore:0,
+        GameScore:0,
+        statusNum:0,
+        GameEnded: false,
+        AvailWidth : window.innerWidth,
+        SoundBool: true,
+        FreshRound: 0,
+        RoundEnded: false,
+        RoundScore: [],       
+        whoStarted: 0,
+        ReplayBool: false,
+        PrevCardsArr: ["clubs6", "clubs7", "clubs8", "clubs9", "clubs10", "clubsJ", "clubsQ", "clubsK", "diamonds6", "diamonds7", "diamonds8", "diamonds9", "diamonds10", "diamondsJ", "diamondsQ", "diamondsK", "hearts6", "hearts7", "hearts8", "hearts9", "hearts10", "heartsJ", "heartsQ", "heartsK", "spades6", "spades7", "spades8", "spades9", "spades10", "spadesJ", "spadesQ", "spadesK"],
+        NumOfReplays: 3,
+        WhoWon: 0,
+        NumOfRounds: 1,
+        TNumOfRounds: 3
+    };
+    gs.AvailHeight = (window.innerHeight - (228*gs.dpr));
+    let CGAATimerVar;
+   
+    function preload()
+    {
+        //load cards
+        this.load.image("clubs6", "Cards/cardClubs6.png");
+        this.load.image("clubs7", "Cards/cardClubs7.png");
+        this.load.image("clubs8", "Cards/cardClubs8.png");
+        this.load.image("clubs9", "Cards/cardClubs9.png");
+        this.load.image("clubs10", "Cards/cardClubs10.png");
+        this.load.image("clubsJ", "Cards/cardClubsJ.png");
+        this.load.image("clubsQ", "Cards/cardClubsQ.png");
+        this.load.image("clubsK", "Cards/cardClubsK.png");
+
+        this.load.image("diamonds6", "Cards/cardDiamonds6.png");
+        this.load.image("diamonds7", "Cards/cardDiamonds7.png");
+        this.load.image("diamonds8", "Cards/cardDiamonds8.png");
+        this.load.image("diamonds9", "Cards/cardDiamonds9.png");
+        this.load.image("diamonds10", "Cards/cardDiamonds10.png");
+        this.load.image("diamondsJ", "Cards/cardDiamondsJ.png");
+        this.load.image("diamondsQ", "Cards/cardDiamondsQ.png");
+        this.load.image("diamondsK", "Cards/cardDiamondsK.png");
+
+        this.load.image("hearts6", "Cards/cardHearts6.png");
+        this.load.image("hearts7", "Cards/cardHearts7.png");
+        this.load.image("hearts8", "Cards/cardHearts8.png");
+        this.load.image("hearts9", "Cards/cardHearts9.png");
+        this.load.image("hearts10", "Cards/cardHearts10.png");
+        this.load.image("heartsJ", "Cards/cardHeartsJ.png");
+        this.load.image("heartsQ", "Cards/cardHeartsQ.png");
+        this.load.image("heartsK", "Cards/cardHeartsK.png");
+
+        this.load.image("spades6", "Cards/cardSpades6.png");
+        this.load.image("spades7", "Cards/cardSpades7.png");
+        this.load.image("spades8", "Cards/cardSpades8.png");
+        this.load.image("spades9", "Cards/cardSpades9.png");
+        this.load.image("spades10", "Cards/cardSpades10.png");
+        this.load.image("spadesJ", "Cards/cardSpadesJ.png");
+        this.load.image("spadesQ", "Cards/cardSpadesQ.png");
+        this.load.image("spadesK", "Cards/cardSpadesK.png");
+
+        // load card back
+        this.load.image("cardBack", "Cards/cardBack_blue5.png");
+
+        // load win, lose and card tapping table sounds
+        this.load.audio("CG_Won", "YouWon.mp3");
+        this.load.audio("CG_Lose", "YouLose.mp3");
+        this.load.audio("CG_CardTable", "CardTable.mp3");
+
+        //load background and board
+        this.load.image('bg1', "background1.jpg");
+        this.load.image('board1', "board1.jpg");
+
+        //load bar icons
+        this.load.image('restart_icon', "icons/refresh1_120x120.png");
+        this.load.image('replay_icon', "icons/circular-arrow_120x120.png");
+        this.load.image('next_icon', "icons/right-arrow_120x120.png");
+
+        this.load.image('home_icon', "icons/home_120x120.png");
+        this.load.image('how_icon', "icons/how_120x120.png");
+        this.load.image('muteOff_icon', "icons/mute_120x120.png");
+        this.load.image('muteOn_icon', "icons/audio-speaker-on_120x120.png");
+
+        this.load.image('cup', "cup6.png");
+
+    }
+
+    function create()
+    {
+        // add background and board
+        gs.bg1 = this.add.image(0, 0, 'bg1');
+        gs.bg1.setDisplaySize(config.width, config.height).setOrigin(0);
+
+        gs.board1 = this.add.image((gs.AvailWidth * 0.05), ((gs.AvailHeight * 0.3) + (114*gs.dpr)), 'board1');
+        gs.board1.setDisplaySize((gs.AvailWidth * 0.9), (gs.AvailHeight * 0.4)).setOrigin(0);
+
+        // Table of the game
+        //gs.rectTable = this.add.rectangle((gs.AvailWidth * 0.05), ((gs.AvailHeight * 0.3) + 70), (gs.AvailWidth * 0.9), (gs.AvailHeight * 0.4), 0x32a2a8).setOrigin(0, 0);
+
+        gs.homeBar = this.add.sprite((gs.AvailWidth / 2) -(90*gs.dpr) -30,  (10*gs.dpr), "home_icon").setOrigin(0).setInteractive();
+        gs.homeBar.setDisplaySize((60 * gs.dpr), (60 * gs.dpr));
+
+        gs.howBar = this.add.sprite((gs.AvailWidth / 2) -(30*gs.dpr),  (10*gs.dpr), "how_icon").setOrigin(0).setInteractive();
+        gs.howBar.setDisplaySize((60 * gs.dpr), (60 * gs.dpr));
+
+        gs.muteBar = this.add.sprite((gs.AvailWidth / 2) +(30*gs.dpr)+30,  (10*gs.dpr), "muteOff_icon").setOrigin(0).setInteractive();
+        gs.muteBar.setDisplaySize((60 * gs.dpr), (60 * gs.dpr));
+
+        gs.restartBar = this.add.sprite((gs.AvailWidth / 2) -(90*gs.dpr) -30,  (config.height - (70*gs.dpr)), "restart_icon").setOrigin(0).setInteractive();
+        gs.restartBar.setDisplaySize((60 * gs.dpr), (60 * gs.dpr));
+
+        gs.replayBar = this.add.sprite((gs.AvailWidth / 2) -(30*gs.dpr),  (config.height - (70*gs.dpr)), "replay_icon").setOrigin(0).setInteractive();
+        gs.replayBar.setDisplaySize((60 * gs.dpr), (60 * gs.dpr));
+
+        gs.nextBar = this.add.sprite((gs.AvailWidth / 2) +(30*gs.dpr)+30,  (config.height - (70*gs.dpr)), "next_icon").setOrigin(0).setInteractive();
+        gs.nextBar.setDisplaySize((60 * gs.dpr), (60 * gs.dpr));
+
+        gs.playerScoreTxt = this.add.text(30, (92*gs.dpr), "Player: 0", {fontFamily: "Arial Black", fill: '#000000', fontSize:'24px', stroke:'#000000', strokeThickness:1}).setOrigin(0, 0.5).setScale(gs.dpr);
+        gs.gameScoreTxt = this.add.text((window.innerWidth - 30), (92*gs.dpr), "Game: 0", {fontFamily: "Arial Black", fill: '#000000', fontSize:'24px', stroke:'#000000', strokeThickness:1}).setOrigin(1, 0.5).setScale(gs.dpr);
+        gs.playerScoreTxt.setText(`Player: ${gs.PlayerScore}`);
+        gs.gameScoreTxt.setText(`Game: ${gs.GameScore}`);
+
+        // alert for cardgame, CGAA = Cardgame Alert A
+        let CGAARect1 = this.add.rectangle(((window.innerWidth/2) - (90 * gs.dpr) -40), (10 * gs.dpr), (180 * gs.dpr) +80, (64 * gs.dpr), 0xffff00).setOrigin(0, 0).setVisible(false);
+        let CGAAX = this.add.text(((window.innerWidth/2) + (90 * gs.dpr) +40 - (28 * gs.dpr)), (10 * gs.dpr), 'X', {fill: '#ff0000', fontSize:'32px', stroke:'#ff0000', strokeThickness:1}).setInteractive().setVisible(false).setScale(gs.dpr);
+        let CGAAInfo = this.add.text(((window.innerWidth/2)), (40 * gs.dpr), 'info', {fill: '#000000', fontSize:'24px', stroke:'#000000', strokeThickness:1}).setOrigin(0.5, 0).setVisible(false).setScale(gs.dpr);
+
+       CGAAX.on("pointerup", function() {
+        CGAADel();
+       });
+
+       CGAADel = () => {
+          CGAARect1.setVisible(false);
+          CGAAX.setVisible(false);
+          CGAAInfo.setVisible(false);
+       }
+
+       CGAAAdd = (info) => {
+        CGAARect1.setVisible(true);
+        CGAAX.setVisible(true);
+        CGAAInfo.setVisible(true);
+        CGAAInfo.setText(info);
+       }
+
+       CGAA = (info) => {
+            this.time.removeEvent(CGAATimerVar);
+            CGAAAdd(info);
+            CGAATimerVar = this.time.addEvent({
+                delay: 10000,
+                callback: CGAADel,
+                callbackScope: this,
+                loop: false
+            });
+        }
+
+
+        arr = ["clubs6", "clubs7", "clubs8", "clubs9", "clubs10", "clubsJ", "clubsQ", "clubsK", "diamonds6", "diamonds7", "diamonds8", "diamonds9", "diamonds10", "diamondsJ", "diamondsQ", "diamondsK", "hearts6", "hearts7", "hearts8", "hearts9", "hearts10", "heartsJ", "heartsQ", "heartsK", "spades6", "spades7", "spades8", "spades9", "spades10", "spadesJ", "spadesQ", "spadesK"];
+function shuffle(array) {
+  let currentIndex = array.length,  randomIndex;
+
+  // While there remain elements to shuffle...
+  while (currentIndex != 0) {
+
+    // Pick a remaining element...
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+
+    // And swap it with the current element.
+    [array[currentIndex], array[randomIndex]] = [
+      array[randomIndex], array[currentIndex]];
+  }
+
+  return array;
+}
+
+if ((gs.FreshRound == 0) && (gs.RoundEnded == false)) {
+    arr = gs.PrevCardsArr;
+  for (let i = 0; i < 10; i++) {
+    shuffle(arr);
+  }
+  gs.PrevCardsArr = arr;
+  CGAA(`Round ${gs.NumOfRounds}`);
+} else {
+  arr = gs.PrevCardsArr;
+  gs.FreshRound = 0;
+  CGAA(`Round ${gs.NumOfRounds}`);
+}
+var cards4PlayerA = [], cards4PlayerB = [];
+
+if ((gs.ReplayBool == true) && (gs.whoStarted == 0)) {
+cards4PlayerA.push(arr[0]);cards4PlayerA.push(arr[1]);cards4PlayerA.push(arr[2]);cards4PlayerA.push(arr[6]);cards4PlayerA.push(arr[7]);
+cards4PlayerB.push(arr[3]);cards4PlayerB.push(arr[4]);cards4PlayerB.push(arr[5]);cards4PlayerB.push(arr[8]);cards4PlayerB.push(arr[9]);
+gs.ReplayBool = false;
+} else if ((gs.ReplayBool == true) && (gs.whoStarted == 1)) {
+cards4PlayerA.push(arr[3]);cards4PlayerA.push(arr[4]);cards4PlayerA.push(arr[5]);cards4PlayerA.push(arr[8]);cards4PlayerA.push(arr[9]);
+cards4PlayerB.push(arr[0]);cards4PlayerB.push(arr[1]);cards4PlayerB.push(arr[2]);cards4PlayerB.push(arr[6]);cards4PlayerB.push(arr[7]);
+gs.ReplayBool = false;
+} else if (gs.WhoWon == 0){
+cards4PlayerA.push(arr[0]);cards4PlayerA.push(arr[1]);cards4PlayerA.push(arr[2]);cards4PlayerA.push(arr[6]);cards4PlayerA.push(arr[7]);
+cards4PlayerB.push(arr[3]);cards4PlayerB.push(arr[4]);cards4PlayerB.push(arr[5]);cards4PlayerB.push(arr[8]);cards4PlayerB.push(arr[9]);
+} else {
+cards4PlayerA.push(arr[3]);cards4PlayerA.push(arr[4]);cards4PlayerA.push(arr[5]);cards4PlayerA.push(arr[8]);cards4PlayerA.push(arr[9]);
+cards4PlayerB.push(arr[0]);cards4PlayerB.push(arr[1]);cards4PlayerB.push(arr[2]);cards4PlayerB.push(arr[6]);cards4PlayerB.push(arr[7]);
+
+}
+        // display sprites evenly
+        // for player
+        gs.cardsAArr = this.add.group();
+        displaySpritesA = (cardsA) => {
+            var TWidth = (gs.AvailWidth * 0.9), XPos = (gs.AvailWidth * 0.05), IWidth = (gs.AvailWidth * 0.15), ISpaces = (gs.AvailWidth * 0.0375),IHeight=(gs.AvailHeight * 0.25);
+            for (var m = 0; m < 5; m++) {
+                gs.cardsAArr.create(XPos, ((gs.AvailHeight * 0.725) + (114*gs.dpr)), cardsA[m]).setDisplaySize(IWidth, IHeight).setOrigin(0).setInteractive();
+                XPos += (IWidth + ISpaces);
+            }
+        }
+        // ["diamonds10", "clubsK", "hearts6", "heartsK", "clubs9"] cards4PlayerA
+        var PlayerCards = cards4PlayerA;
+        var PlayerCardsCopy = cards4PlayerA;
+        displaySpritesA(PlayerCards);
+
+        // for computer
+        gs.cardsBArr = this.add.group();
+        gs.cardsBBackArr = this.add.group();
+        displaySpritesB = (cardsB) => {
+          var TWidth = (gs.AvailWidth * 0.9), XPos = (gs.AvailWidth * 0.05), IWidth = (gs.AvailWidth * 0.15), ISpaces = (gs.AvailWidth * 0.0375),IHeight=(gs.AvailHeight * 0.25);
+            //var cardsBArr = [gs.cardsB1, gs.cardsB2, gs.cardsB3, gs.cardsB4, gs.cardsB5];
+            for (var m = 0; m < 5; m++) {
+                gs.cardsBArr.create(XPos, ((114*gs.dpr) + (gs.AvailHeight * 0.025)), cardsB[m]).setDisplaySize(IWidth, IHeight).setVisible(false).setOrigin(0).setInteractive();
+                gs.cardsBBackArr.create(XPos, ((114*gs.dpr) + (gs.AvailHeight * 0.025)), "cardBack").setDisplaySize(IWidth, IHeight).setOrigin(0);//.setInteractive();
+                XPos += (IWidth + ISpaces);
+            }
+        }
+        // ["hearts7", "hearts8", "clubs6", "diamondsQ", "diamondsK"] cards4PlayerB
+        var ComputerCards = cards4PlayerB;
+        var ComputerCardsCopy = cards4PlayerB;
+        displaySpritesB(ComputerCards);
+
+        gs.cardsPlayedObj = {player:[], game:[]};
+        gs.nextPlayerFuncArr = [];
+        gs.whoseTurn = 0;
+        gs.cardAXPos = (gs.AvailWidth * 0.95) - (gs.cardsAArr.getChildren()[0].displayWidth);
+        gs.cardYPos = (gs.AvailHeight * 0.375) + (114*gs.dpr);
+        gs.cardClicks = [0, 0, 0, 0, 0];
+        let CG_CardTable = this.sound.add("CG_CardTable").setRate(2);
+
+        movePlayerCards = (target, xpos, ypos) => {
+            this.tweens.add({
+          targets: target,
+          x: xpos,
+          y: ypos,
+          ease: 'Linear',
+          duration: 500,
+          repeat: 0,
+          yoyo: false,
+        });
+        }
+        // player Cards
+        for (let i=0; i<5;i++){
+            gs.cardsAArr.getChildren()[i].on("pointerup", () => {
+            if (gs.cardClicks[i] == 0 && gs.whoseTurn == 0){
+                gs.cardClicks[i] = 1;
+                gs.i1 = i;
+                movePlayerCards(gs.cardsAArr.getChildren()[gs.i1], gs.cardAXPos, gs.cardYPos);
+                this.children.bringToTop(gs.cardsAArr.getChildren()[gs.i1]);
+                gs.cardAXPos -= (gs.cardsAArr.getChildren()[gs.i1].displayWidth * 0.5);
+                gs.cardsPlayedObj.player.push(PlayerCards[gs.i1]);
+                gs.nextPlayerFuncArr.push(PlayerCards[gs.i1]);
+                PlayerCardsCopy = PlayerCardsCopy.filter(function(y){return y != PlayerCards[gs.i1];});
+                CG_CardTable.play();
+                if (gs.nextPlayerFuncArr.length == 2) {
+                    if (checkMistake(gs.nextPlayerFuncArr, PlayerCardsCopy) == true) {
+                        gs.cardClicks = [2, 2, 2, 2, 2];
+                        endThisRound("GAME WON", [0, 1], 1);
+                    } else if (nextPlayerFunc(gs.nextPlayerFuncArr[0], gs.nextPlayerFuncArr[1]) == 1) {
+                        if (ComputerCardsCopy.length == 0) {
+                            endThisRound("YOU WIN", check67("Player", gs.cardsPlayedObj), 0);
+                        } else {
+                          gs.nextPlayerFuncArr = [];
+                          gs.whoseTurn = 0;
+                        }
+                    } else {
+                        if (ComputerCardsCopy.length == 0) {
+                            endThisRound("GAME WON", check67("Game", gs.cardsPlayedObj), 1);
+                        } else {
+                          gs.nextPlayerFuncArr = [];
+                          gs.whoseTurn = 1;
+                          computerPlayer();
+                        }
+
+                    }
+                } else {
+                    gs.whoseTurn = 1;
+                    computerPlayer();
+                }
+            } else if (gs.cardClicks[i] == 1) {
+                return 0;
+            }
+        });
+        }
+
+        //Computer Player func
+        moveComputerCards = (target, xpos, ypos) => {
+            this.tweens.add({
+          targets: target,
+          x: xpos,
+          y: ypos,
+          ease: 'Linear',
+          duration: 500,
+          repeat: 0,
+          yoyo: false,
+        });
+        }
+        gs.cardBXPos = (gs.AvailWidth * 0.05);
+        computerPlayer = () => {
+            var cpRND;
+            var keyRND = computerBestOpt(gs.nextPlayerFuncArr[0], ComputerCardsCopy);
+            cpRND = ComputerCards.indexOf(keyRND);
+            moveComputerCards(gs.cardsBArr.getChildren()[cpRND], gs.cardBXPos, gs.cardYPos);
+            this.children.bringToTop(gs.cardsBArr.getChildren()[cpRND]);
+            gs.cardsBArr.getChildren()[cpRND].setVisible(true);
+            gs.cardsBBackArr.getChildren()[cpRND].setVisible(false);
+            gs.cardBXPos += (gs.cardsBArr.getChildren()[cpRND].displayWidth * 0.5);
+            ComputerCardsCopy = ComputerCardsCopy.filter(function(x){return x != keyRND;});
+            gs.cardsPlayedObj.game.push(keyRND);
+            gs.nextPlayerFuncArr.push(keyRND);
+            if (gs.nextPlayerFuncArr.length == 2) {
+                    if (nextPlayerFunc(gs.nextPlayerFuncArr[0], gs.nextPlayerFuncArr[1]) == 1) {
+                        if (ComputerCardsCopy.length == 0) {
+                            endThisRound("GAME WON", check67("Game", gs.cardsPlayedObj), 1);
+                        } else {
+                          gs.nextPlayerFuncArr = [];
+                          computerPlayer();
+                          gs.whoseTurn = 0;
+                        }
+                    } else {
+                        if (ComputerCardsCopy.length == 0) {
+                            endThisRound("YOU WIN", check67("Player", gs.cardsPlayedObj), 0);
+                        } else {
+                          gs.nextPlayerFuncArr = [];
+                          gs.whoseTurn = 0;
+                          
+                        }
+                    }
+            } else {
+                    gs.whoseTurn = 0;
+            }
+        }
+
+        if (gs.statusNum == 1) {
+            computerPlayer();
+            gs.statusNum = 0;
+            gs.whoStarted = 1;
+        } else {
+            gs.whoStarted = 0;
+        }
+
+        
+
+        computerBestOpt = (card, AvailCards) => {
+  var cardName, cardId, cboRND, potentialCards = [], potentialCardsNames = [], potentialCardsIds = [], potentialCardsIdsNaN = [], potentialCardsIdsNum = [], potentialCardsIdsNumLH = [];
+  var allCardIds = ["6", "7", "8", "9", "10", "J", "Q", "K"], reuseArr = [];
+  if (card == undefined) {
+      //cboRND = Math.floor(Math.random() * AvailCards.length);
+      //return AvailCards[cboRND];
+      allCardIds = allCardIds.reverse();
+      for (let n = 0; n < allCardIds.length; n++){
+        for (let m=0; m < AvailCards.length; m++) {
+            if (AvailCards[m].includes(allCardIds[n])) {
+                reuseArr.push(AvailCards[m]);
+            }
+        }
+        if (reuseArr.length > 0) {
+          cboRND = Math.floor(Math.random() * reuseArr.length);
+          return reuseArr[cboRND];
+        }
+      }
+  } else {     
+    if (card.includes("clubs") == true){
+      cardName = "clubs";
+      cardId = card.replace(/clubs/i,"");
+    } else if (card.includes("diamonds") == true){
+      cardName = "diamonds";
+      cardId = card.replace(/diamonds/i,"");
+    } else if (card.includes("hearts") == true){
+      cardName = "hearts";
+      cardId = card.replace(/hearts/i,"");
+    } else if (card.includes("spades") == true){
+      cardName = "spades";
+      cardId = card.replace(/spades/i,"");
+    }
+    for (var k=0; k < AvailCards.length; k++) {
+        if (AvailCards[k].includes(cardName)) {
+          potentialCards.push(AvailCards[k]);
+        }
+    }
+
+    if(potentialCards.length > 0){
+      //cboRND = Math.floor(Math.random() * potentialCards.length);
+      //return potentialCards[cboRND];
+      potentialCardsIds = computerCardsNamesIds(potentialCards).ids;
+      for(let i=0;i<potentialCardsIds.length;i++){
+        if (isNaN(parseInt(potentialCardsIds[i]))) {
+          potentialCardsIdsNaN.push(potentialCardsIds[i]);
+        } else {
+          potentialCardsIdsNum.push(parseInt(potentialCardsIds[i]));
+        }
+      }
+      potentialCardsIdsNumLH = potentialCardsIdsNum;
+      potentialCardsIdsNumLH.sort(function(a, b) {return a - b;});
+      if(cardId == "K") {
+        if (potentialCardsIdsNum.length == 0){
+          if (potentialCardsIdsNaN.includes("J")){
+            return cardName + "J";
+          } else if (potentialCardsIdsNaN.includes("Q")){
+            return cardName + "Q";
+          }
+        } else if (potentialCardsIdsNum.length > 0){
+          return cardName + potentialCardsIdsNumLH[0];
+        }
+      } else if (cardId == "Q" || cardId == "J"){
+        if (potentialCardsIdsNaN.length > 0 && potentialCardsIdsNaN.includes("K")){
+          if (potentialCardsIdsNaN.includes("K")){
+            return cardName + "K";
+          }
+        } else if (potentialCardsIdsNaN.length > 0 && potentialCardsIdsNaN.includes("Q")){
+          if (potentialCardsIdsNaN.includes("Q")){
+            return cardName + "Q";
+          }
+        } else if (potentialCardsIdsNum.length > 0){
+          return cardName + potentialCardsIdsNumLH[0];
+        } else if (potentialCardsIdsNaN.includes("J")){
+          return cardName + "J";
+        }
+      } else if (cardId == "6" || cardId == "7" || cardId == "8" || cardId == "9" || cardId == "10") {
+        if (potentialCardsIdsNum.length > 0){
+          for (let i = 0; i<potentialCardsIdsNumLH.length;i++) {
+            if (potentialCardsIdsNumLH[i] > parseInt(cardId)) {
+              return cardName + potentialCardsIdsNumLH[i];
+            } else if (i == (potentialCardsIdsNumLH.length -1) && potentialCardsIdsNaN.length > 0) {
+              if (potentialCardsIdsNaN.includes("J")){
+                return cardName + "J";
+              } else if (potentialCardsIdsNaN.includes("Q")){
+                return cardName + "Q";
+              } else if (potentialCardsIdsNaN.includes("K")){
+                return cardName + "K";
+              }
+            } else if (i == (potentialCardsIdsNumLH.length -1)){
+              return cardName + potentialCardsIdsNumLH[0];
+            }
+          } 
+        } else if (potentialCardsIdsNaN.length > 0) {
+          if (potentialCardsIdsNaN.includes("J")){
+            return cardName + "J";
+          } else if (potentialCardsIdsNaN.includes("Q")){
+            return cardName + "Q";
+          } else if (potentialCardsIdsNaN.includes("K")){
+            return cardName + "K";
+          }
+        }
+      }
+    } else {
+      //cboRND = Math.floor(Math.random() * AvailCards.length);
+      //return AvailCards[cboRND];
+      for (let n = 0; n < allCardIds.length; n++){
+            for (let m=0; m < AvailCards.length; m++) {
+                if (AvailCards[m].includes(allCardIds[n])) {
+                    reuseArr.push(AvailCards[m]);
+                }
+            }
+          if (reuseArr.length > 0) {
+            cboRND = Math.floor(Math.random() * reuseArr.length);
+            return reuseArr[cboRND];
+          }
+      }
+    }
+
+  }
+}
+
+
+
+computerCardsNamesIds = (AvailCards) =>{
+  let cardsNames = [], cardsIds = [];
+
+  for (let j=0;j<AvailCards.length;j++) {
+    if (AvailCards[j].includes("clubs") == true){
+      cardsNames.push("clubs");
+      cardsIds.push(AvailCards[j].replace(/clubs/i,""));
+    } else if (AvailCards[j].includes("diamonds") == true){
+      cardsNames.push("diamonds");
+      cardsIds.push(AvailCards[j].replace(/diamonds/i,""));
+    } else if (AvailCards[j].includes("hearts") == true){
+      cardsNames.push("hearts");
+      cardsIds.push(AvailCards[j].replace(/hearts/i,""));
+    } else if (AvailCards[j].includes("spades") == true){
+      cardsNames.push("spades");
+      cardsIds.push(AvailCards[j].replace(/spades/i,""));
+    }
+  }
+
+  return {names:cardsNames, ids:cardsIds};
+}
+
+        function nextPlayerFunc(wordA, wordB) {
+    var cardNameA, cardNameB, cardIdA, cardIdB;
+    if (wordA.includes("clubs") == true){
+        cardNameA = "clubs";
+        cardIdA = wordA.replace(/clubs/i,"");
+    } else if (wordA.includes("diamonds") == true){
+        cardNameA = "diamonds";
+        cardIdA = wordA.replace(/diamonds/i,"");
+    } else if (wordA.includes("hearts") == true){
+        cardNameA = "hearts";
+        cardIdA = wordA.replace(/hearts/i,"");
+    } else if (wordA.includes("spades") == true){
+        cardNameA = "spades";
+        cardIdA = wordA.replace(/spades/i,"");
+    }
+
+    if (wordB.includes("clubs") == true){
+        cardNameB = "clubs";
+        cardIdB = wordB.replace(/clubs/i,"");
+    } else if (wordB.includes("diamonds") == true){
+        cardNameB = "diamonds";
+        cardIdB = wordB.replace(/diamonds/i,"");
+    } else if (wordB.includes("hearts") == true){
+        cardNameB = "hearts";
+        cardIdB = wordB.replace(/hearts/i,"");
+    } else if (wordB.includes("spades") == true){
+        cardNameB = "spades";
+        cardIdB = wordB.replace(/spades/i,"");
+    }
+
+    // 0 for loss and 1 for win with respect to this game
+    if (cardNameA != cardNameB) {
+        return 0;
+    } else if (cardIdA == "K"){
+        return 0
+    } else if (cardIdA == "Q"){
+        if (cardIdB == "K"){
+            return 1;
+        } else {
+            return 0;
+        }
+    } else if (cardIdA == "J"){
+        if (cardIdB == "K" || cardIdB == "Q"){
+            return 1;
+        } else {
+            return 0;
+        }
+    } else if (cardIdA == "6" || cardIdA == "7" || cardIdA == "8" || cardIdA == "9" || cardIdA == "10"){
+      if (cardIdB == "K" || cardIdB == "Q" || cardIdB == "J"){
+            return 1;
+        } else if (parseInt(cardIdA) > parseInt(cardIdB)){
+            return 0;
+        } else {
+            return 1;
+        }
+    } 
+}
+
+check67 = (winner, cardsPlayed) =>{
+  let playerCardsIds = [], playerCardsNames = [], gameCardsIds = [], gameCardsNames = [], score = 0;
+  playerCardsIds = computerCardsNamesIds(cardsPlayed.player).ids;
+  playerCardsNames = computerCardsNamesIds(cardsPlayed.player).names;
+  gameCardsIds = computerCardsNamesIds(cardsPlayed.game).ids;
+  gameCardsNames = computerCardsNamesIds(cardsPlayed.game).names;
+  if (winner == "Player") {
+    if (playerCardsIds[4] == "6" || playerCardsIds[4] == "7" && (playerCardsNames[4] != gameCardsNames[4])) {
+      for (let i=4; i > -1; i--) {
+        if ((playerCardsIds[i] == 6) && (playerCardsNames[i] != gameCardsNames[i])){
+          score += 3;
+        } else if ((playerCardsIds[i] == 7) && (playerCardsNames[i] != gameCardsNames[i])) {
+          score += 2;
+        } else {
+          return [score, 0];
+        }
+      }
+    } else {
+      return [1, 0];
+    }
+  } else if (winner == "Game") {
+    if (gameCardsIds[4] == "6" || gameCardsIds[4] == "7" && (playerCardsNames[4] != gameCardsNames[4])) {
+      for (let i=4; i > -1; i--) {
+        if ((gameCardsIds[i] == 6) && (playerCardsNames[i] != gameCardsNames[i])){
+          score += 3;
+        } else if ((gameCardsIds[i] == 7) && (playerCardsNames[i] != gameCardsNames[i])) {
+          score += 2;
+        } else {
+          return [0, score];
+        }
+      }
+    } else {
+      return [0, 1];
+    }
+  }
+}
+
+checkMistake = (cards, AvailCards) => {
+  var cardNameCM, potentialCardsCM = [];   
+      if (cards[0].includes("clubs") == true){
+        cardNameCM = "clubs";
+      } else if (cards[0].includes("diamonds") == true){
+        cardNameCM = "diamonds";
+      } else if (cards[0].includes("hearts") == true){
+        cardNameCM = "hearts";
+      } else if (cards[0].includes("spades") == true){
+        cardNameCM = "spades";
+      }
+
+      if (cards[1].includes(cardNameCM) == true){
+          return false;
+      } else {
+
+        for (var k=0; k < AvailCards.length; k++) {
+          if (AvailCards[k].includes(cardNameCM) == true) {
+            potentialCardsCM.push(true);
+          } else {
+            potentialCardsCM.push(false);
+          }
+        }
+      
+        if (potentialCardsCM.includes(true) == true) {
+          return true;
+        } else {
+          return false;
+        }
+      }
+
+}
+
+  gs.muteBar.on("pointerup", () => {
+    if (gs.SoundBool == true) {
+        CG_CardTable.setMute(true);
+        CG_Won.setMute(true);
+        CG_Lose.setMute(true);
+        gs.SoundBool = false;
+        gs.muteBar.setTexture("muteOn_icon");
+    } else {
+        CG_CardTable.setMute(false);
+        CG_Won.setMute(false);
+        CG_Lose.setMute(false);
+        gs.SoundBool = true;
+        gs.muteBar.setTexture("muteOff_icon");
+    }
+});
+
+gs.restartBar.on("pointerup", () => {
+  gs.PlayerScore = 0;gs.GameScore = 0;gs.statusNum = 0;gs.GameEnded=false;gs.FreshRound = 0;gs.RoundEnded=false;gs.RoundScore=[];gs.whoStarted=0; gs.NumOfReplays=3;gs.WhoWon=0;gs.NumOfRounds=1;
+  gs.PrevCardsArr=["clubs6", "clubs7", "clubs8", "clubs9", "clubs10", "clubsJ", "clubsQ", "clubsK", "diamonds6", "diamonds7", "diamonds8", "diamonds9", "diamonds10", "diamondsJ", "diamondsQ", "diamondsK", "hearts6", "hearts7", "hearts8", "hearts9", "hearts10", "heartsJ", "heartsQ", "heartsK", "spades6", "spades7", "spades8", "spades9", "spades10", "spadesJ", "spadesQ", "spadesK"];
+  this.scene.restart();
+});
+
+gs.replayBar.on("pointerup", ()=>{
+    if ((gs.NumOfReplays > 0)) {
+        if (gs.RoundEnded === true) {
+            gs.PlayerScore -= gs.RoundScore[0];
+            gs.playerScoreTxt.setText(`Player: ${gs.PlayerScore}`);
+            gs.GameScore -= gs.RoundScore[1];
+            gs.gameScoreTxt.setText(`Game: ${gs.GameScore}`);
+        }
+        gs.RoundEnded = false;
+        gs.statusNum = gs.whoStarted;
+        gs.FreshRound = 1;
+        gs.NumOfReplays -= 1;
+        gs.ReplayBool = true;
+        this.scene.restart();
+    }
+});
+
+gs.confirmNext = false;
+gs.nextBar.on("pointerup", () => {
+    if ((gs.confirmNext == true) && (gs.GameEnded==false) && (gs.NumOfRounds < (gs.TNumOfRounds))){
+        gs.NumOfRounds += 1;
+        gs.confirmNext = false;
+        gs.RoundEnded = false;
+        this.scene.restart();
+    }
+});
+
+gs.homeBar.on("pointerup", () => {
+    window.location.assign("index.html");
+});
+
+gs.howBar.on("pointerup", () => {
+    window.location.assign("how.html");
+});
+
+
+let CG_Won = this.sound.add("CG_Won");
+let CG_Lose = this.sound.add("CG_Lose");
+endThisRound = (status, score, statusNum) => {
+            gs.PlayerScore += score[0];
+            gs.playerScoreTxt.setText(`Player: ${gs.PlayerScore}`);
+            gs.GameScore += score[1];
+            gs.gameScoreTxt.setText(`Game: ${gs.GameScore}`);
+            if (score[0] == 1 && statusNum == 0) {
+                CGAA(`${status} ${score[0]}pt`);
+                gs.WhoWon = 0;
+                if(gs.NumOfRounds < (gs.TNumOfRounds)){
+                  CG_Won.play();
+                }
+            } else if (score[0] != 1 && statusNum == 0) {
+                CGAA(`${status} ${score[0]}pts`);
+                gs.WhoWon = 0;
+                if(gs.NumOfRounds < (gs.TNumOfRounds)){
+                  CG_Won.play();
+                }
+            } else if (score[1] == 1 && statusNum == 1) {
+                CGAA(`${status} ${score[1]}pt`);
+                gs.WhoWon = 1;
+                if(gs.NumOfRounds < (gs.TNumOfRounds)){
+                  CG_Lose.play();
+                }
+            } else if (score[1] != 1 && statusNum == 1) {
+                CGAA(`${status} ${score[1]}pts`);
+                gs.WhoWon = 1;
+                if(gs.NumOfRounds < (gs.TNumOfRounds)){
+                  CG_Lose.play();
+                }
+            }
+            //gs.ETRTxt = this.add.text((window.innerWidth / 2), (window.innerHeight / 2), status, { fontSize: '15px', fill: '#000000' }).setOrigin(0.5);
+            
+		        gs.statusNum = statusNum;
+            gs.RoundEnded = true;
+            gs.RoundScore = score;
+
+            if((gs.NumOfRounds == (gs.TNumOfRounds)) && (gs.PlayerScore > gs.GameScore)){
+              CGABAdd("YOU WON", `${gs.PlayerScore - gs.GameScore}`);
+              gs.confirmNext = false;
+              gs.GameEnded = true;
+              CG_Won.play();
+            } else if ((gs.NumOfRounds == (gs.TNumOfRounds)) && (gs.PlayerScore <= gs.GameScore)){
+              CGABAdd("YOU LOSE", `${gs.GameScore - gs.PlayerScore}`);
+              gs.confirmNext = false;
+              gs.GameEnded = true;
+              CG_Lose.play();
+            } else {
+              gs.confirmNext = true;
+              gs.GameEnded = false;
+            }
+        } 
+        
+        // mute and unmute
+        if (gs.SoundBool == false) {
+        CG_CardTable.setMute(true);
+        CG_Won.setMute(true);
+        CG_Lose.setMute(true);
+        gs.muteBar.setTexture("muteOn_icon");
+        } else {
+        CG_CardTable.setMute(false);
+        CG_Won.setMute(false);
+        CG_Lose.setMute(false);
+        gs.muteBar.setTexture("muteOff_icon");
+        }
+
+        // alert for cardgame, CGAB = Cardgame Alert B
+        let CGABRect1 = this.add.rectangle((gs.AvailWidth * 0.2), (114*gs.dpr) +(gs.AvailHeight * 0.0375), (gs.AvailWidth * 0.6), (gs.AvailHeight * 0.925), 0x00ff00).setOrigin(0, 0).setVisible(false);
+        let CGABX = this.add.text((gs.AvailWidth * 0.8) -(28*gs.dpr), (114*gs.dpr) +(gs.AvailHeight * 0.0375), 'X', {fill: '#ff0000', fontSize:'32px', stroke:'#ff0000', strokeThickness:1}).setInteractive().setVisible(false).setScale(gs.dpr);
+        let CGABCup = this.add.sprite((gs.AvailWidth * 0.3), (114*gs.dpr) +(gs.AvailHeight * 0.0375), 'cup').setDisplaySize((gs.AvailWidth * 0.4),(gs.AvailHeight * 0.5)).setOrigin(0, 0).setVisible(false);
+        let CGABInfo = this.add.text(((window.innerWidth/2)), (114*gs.dpr)+ (gs.AvailHeight * 0.5875), 'YOU WON', {fontFamily: "Arial Black", fill: '#ffff00', fontSize:'128px', stroke:'#ffff66', strokeThickness:2}).setDisplaySize((gs.AvailWidth * 0.4),(gs.AvailHeight * 0.15)).setOrigin(0.5, 0).setVisible(false);
+        let CGABNum = this.add.text(((window.innerWidth/2)), (114*gs.dpr)+ (gs.AvailHeight * 0.76875), '90', {fontFamily: "Arial Black", fill: '#000000', fontSize:'256px', stroke:'#000000', strokeThickness:2}).setDisplaySize((gs.AvailWidth * 0.2),(gs.AvailHeight * 0.2)).setOrigin(0.5, 0).setVisible(false);
+
+      CGABX.on("pointerup", function() {
+        CGABDel();
+       });
+
+       CGABDel = () => {
+          CGABRect1.setVisible(false);
+          CGABX.setVisible(false);
+          CGABCup.setVisible(false);
+          CGABInfo.setVisible(false);
+          CGABNum.setVisible(false);
+       }
+
+       CGABAdd = (info, Num) => {
+        CGABRect1.setVisible(true);
+        this.children.bringToTop(CGABRect1);
+        CGABX.setVisible(true);
+        this.children.bringToTop(CGABX);
+        CGABCup.setVisible(true);
+        this.children.bringToTop(CGABCup);
+        CGABInfo.setVisible(true);
+        this.children.bringToTop(CGABInfo);
+        CGABInfo.setText(info);
+        CGABNum.setVisible(true);
+        this.children.bringToTop(CGABNum);
+        CGABNum.setText(Num);
+       }
+
+       /* CGAB = (info) => {
+            this.time.removeEvent(CGAATimerVar);
+            CGAAAdd(info);
+            CGAATimerVar = this.time.addEvent({
+                delay: 10000,
+                callback: CGAADel,
+                callbackScope: this,
+                loop: false
+            });
+        } */
+
+
+    }
+    /*endThisGame = () => {
+            if (gs.PlayerScore > gs.GameScore) {
+                this.add.text((window.innerWidth / 2), (window.innerHeight / 2), "YOU WON", { fontSize: '15px', fill: '#000000' }).setOrigin(0.5);
+            } else {
+                this.add.text((window.innerWidth / 2), (window.innerHeight / 2), "YOU LOSE", { fontSize: '15px', fill: '#000000' }).setOrigin(0.5);
+            }
+            gs.confirmNext = false;
+		    gs.whoseTurn = 2;         
+
+    }*/
+
+    function update()
+    {
+
+    }
+
+
+    const config = {
+        type: Phaser.AUTO,
+        width: window.innerWidth,
+        height: window.innerHeight,
+        backgroundColor: 0xF4A460,
+        
+        physics: {
+            default: 'arcade',
+            arcade: {
+                gravity: { y: 200 },
+                debug: false,
+                enableBody: true
+            }
+        },
+        scene: {
+            preload,
+            create,
+            update
+        }
+    };
+
+    const game = new Phaser.Game(config);
+    </script>
+</body>
+</html>
